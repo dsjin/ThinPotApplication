@@ -17,7 +17,7 @@ class Core():
     hzSys = c_double()
     volt = (c_double*1)()
     dwf = object
-    distance = lambda volt: (0.0325*(volt**3)) - (0.5832*(volt**2)) + (0.0768*(volt)) + 9.8164
+    distance = lambda self, volt: ((0.0325*(volt**3)) - (0.5832*(volt**2)) + (0.0768*volt) + 9.8164)
 
     def __init__(self, window):
         self.gui = window
@@ -56,7 +56,8 @@ class Core():
         self.dwf.FDwfAnalogIOEnableSet(self.hdwf, c_int(enable))
 
     def setup_digital_output(self):
-        # 2kHz pulse on IO pin 0
+        self.dwf.FDwfDigitalOutInternalClockInfo(self.hdwf, byref(self.hzSys))
+
         self.dwf.FDwfDigitalOutEnableSet(self.hdwf, c_int(0), c_int(1))
         # prescaler to 2kHz
         self.dwf.FDwfDigitalOutDividerSet(self.hdwf, c_int(0), c_int(int(self.hzSys.value / 2e3)))
@@ -92,10 +93,11 @@ class Core():
             time.sleep(0.1)
 
         self.dwf.FDwfAnalogInStatusData(self.hdwf, c_int(0), self.volt, 1)
-        return (self.volt,self.distance(self.volt))
+        return self.volt[0], self.distance(self.volt[0])
 
     def disconnect_ad2(self):
         self.enable_power_supplies(False)
         self.dwf.FDwfDeviceCloseAll()
+        self.hdwf = c_int()
         self.gui.status.emit("AD2: Disconnected")
         return False

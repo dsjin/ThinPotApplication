@@ -6,13 +6,14 @@ Author : Thatchakon Jom-ud
 """
 
 import sys
-import time
+import os
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5 import QtCore, uic
 from core import Core
 
-ui = "ThinPot Estimator.ui"
-alert_dialog = "alert dialog.ui"
+ui = "etc/ui/ThinPot Estimator.ui"
+alert_dialog = "etc/ui/alert dialog.ui"
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(ui)
 dialog_mainwindow, QtBaseClass1 = uic.loadUiType(alert_dialog)
@@ -26,20 +27,13 @@ class distanceTask(QtCore.QObject):
 
     def start_core(self):
         self.__start = True
-        num = 0
         while self.__start:
-            """
-            values = core.get_volt_and_distance()
-            if values[1] >= 0 and values[0] < 4.900000:
-                self.stringChanged.emit(str(values[1]) + " cm")
-                self.valueChanged.emit(values[0])
-            """
-            self.stringChanged.emit(str(num)+" cm")
-            self.valueChanged.emit(num)
-            num += 1
-            if (num >= 100):
-                num = 0
-            time.sleep(0.05)
+            self.values = core.get_volt_and_distance()
+
+            if (self.values[1]) >= 0 and (self.values[0] < 4.890000 and self.values[0] >= 0):
+                self.stringChanged.emit(str("{0:.2f}".format(self.values[1])) + " cm")
+                self.valueChanged.emit(self.values[1]*10)
+
         self.finished.emit()
 
     def stop(self):
@@ -67,6 +61,16 @@ class alertDialog(QDialog, dialog_mainwindow):
 
     def setMessage(self, text):
         self.messageLabel.setText(text)
+
+class helper(QMainWindow):
+    def __init__(self, parent=None):
+        super(helper, self).__init__(parent)
+        self.setWindowTitle("Application Helper")
+        self.setFixedSize(400,500)
+        self.browser = QWebEngineView()
+        self.file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "etc/helper.html"))
+        self.browser.load(QtCore.QUrl.fromLocalFile(self.file_path))
+        self.setCentralWidget(self.browser)
 
 class application(QMainWindow, Ui_MainWindow):
 
@@ -113,6 +117,8 @@ class application(QMainWindow, Ui_MainWindow):
 
         self.actionDisconnect.setEnabled(False)
 
+        self.actionHelp.triggered.connect(self.help_webview)
+
     def start_event(self):
         if(core.get_device_status() != "Not Connect"):
             self.thread.start()
@@ -144,6 +150,10 @@ class application(QMainWindow, Ui_MainWindow):
     def callback_disconnect_task(self):
         self.actionConnect.setEnabled(True)
         self.actionDisconnect.setEnabled(False)
+
+    def help_webview(self):
+        window = helper(self)
+        window.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
